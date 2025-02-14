@@ -103,7 +103,7 @@ class BookController extends Controller
             $imageName = time() . '-image.' . $request->image->extension();
 
             // Save the image to the storage
-            $request->image->storeAs('public/images', $imageName);
+            $request->image->storeAs('images', $imageName);
 
             // Replace the image field in the data with the new unique name
             $path = config('app.url') . '/storage/images/';
