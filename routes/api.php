@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\BookController;
+use App\Http\Controllers\API\AuthorController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\BorrowController;
 use App\Http\Controllers\API\ProfileController;
@@ -26,7 +27,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/books/search', [BookController::class, 'search']);
     Route::apiResource('category', CategoryController::class);
     Route::get('/category/{categoryId}/books', [CategoryController::class, 'getBooksByCategory']);
-    Route::get('/category/{categoryId}/books', [CategoryController::class, 'getBooksByCategory']);
+    Route::post('/books/{bookId}/categories', [BookController::class, 'attachCategories']);
+    Route::delete('/books/{bookId}/categories', [BookController::class, 'detachCategories']);
+    Route::apiResource('author', AuthorController::class);
     Route::apiResource('role', RoleController::class);
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register']);

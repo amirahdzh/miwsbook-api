@@ -78,7 +78,6 @@ class CategoryController extends Controller
                         "summary" => $book->summary,
                         "image" => $book->image,
                         "year" => $book->year,
-                        "category_id" => $book->category_id,
                         "created_at" => $book->created_at,
                         "updated_at" => $book->updated_at,
                     ];
@@ -86,6 +85,7 @@ class CategoryController extends Controller
             ],
         ]);
     }
+
 
     /**
      * Update the specified resource in storage.
@@ -135,25 +135,16 @@ class CategoryController extends Controller
             ], 404);
         }
 
-        // Check if the category is 'No Category' or 'Owner'
-        if ($category->name === 'No Category' || $category->name === 'Owner') {
-            return response()->json([
-                "message" => "Cannot delete this category",
-            ], 403);
-        }
+        // Pastikan tidak ada penghapusan paksa tanpa mengelola hubungan many-to-many
+        $category->books()->detach(); // Lepaskan hubungan dari pivot table
 
-        // Handle the case where the category is being deleted
-        // Move all books to 'No Category'
-        $noCategory = Category::where('name', 'No Category')->first();
-        $category->books()->update(['category_id' => $noCategory->id]);
-
-        // Delete the category
         $category->delete();
 
         return response()->json([
             "message" => "Category deleted successfully",
         ]);
     }
+
 
     /**
      * Get books by category.
@@ -165,13 +156,52 @@ class CategoryController extends Controller
             return response()->json(['message' => 'Category not found'], 404);
         }
 
-        $books = Book::whereHas('category', function ($query) use ($categoryId) {
-            $query->where('id', $categoryId);
-        })->get();
+        $books = $category->books; // Menggunakan relasi many-to-many
 
         return response()->json([
             "message" => "Books retrieved successfully",
             "data" => $books,
+        ]);
+    }
+
+
+    public function attachCategories(Request $request, $bookId)
+    {
+        $book = Book::find($bookId);
+        if (!$book) {
+            return response()->json(['message' => 'Book not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'categories' => 'required|array',
+            'categories.*' => 'exists:categories,id',
+        ]);
+
+        $book->categories()->attach($validated['categories']);
+
+        return response()->json([
+            'message' => 'Categories added to book successfully',
+            'data' => $book->categories
+        ]);
+    }
+
+    public function detachCategories(Request $request, $bookId)
+    {
+        $book = Book::find($bookId);
+        if (!$book) {
+            return response()->json(['message' => 'Book not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'categories' => 'required|array',
+            'categories.*' => 'exists:categories,id',
+        ]);
+
+        $book->categories()->detach($validated['categories']);
+
+        return response()->json([
+            'message' => 'Categories removed from book successfully',
+            'data' => $book->categories
         ]);
     }
 }

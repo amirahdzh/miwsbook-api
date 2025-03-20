@@ -8,6 +8,7 @@ use App\Http\Requests\BookRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 
 class BookController extends Controller
 {
@@ -22,27 +23,28 @@ class BookController extends Controller
     public function index(Request $request)
     {
         try {
-            // Get pagination parameters
-            $perPage = $request->input('per_page', 10); // Default to 10 per page
+            $perPage = $request->input('per_page', 10);
             $page = $request->input('page', 1);
 
-            // Retrieve books with pagination
-            $books = Book::with('category')->paginate($perPage, ['*'], 'page', $page);
+            // Load kategori dan author
+            $books = Book::with(['categories', 'authors'])->paginate($perPage, ['*'], 'page', $page);
 
-            // Format the data as needed
-            $data = $books->map(function ($book) {
+            $data = collect($books->items())->map(function ($book) {
                 return [
                     'id' => $book->id,
                     'title' => $book->title,
                     'summary' => $book->summary,
                     'stock' => $book->stock,
                     'image' => $book->image,
-                    'category' => [
-                        'id' => $book->category->id,
-                        'name' => $book->category->name,
-                        'created_at' => $book->category->created_at,
-                        'updated_at' => $book->category->updated_at,
-                    ],
+                    'availability' => $book->availability,
+                    'categories' => $book->categories->map(fn($category) => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                    ]),
+                    'authors' => $book->authors->map(fn($author) => [
+                        'id' => $author->id,
+                        'name' => $author->name,
+                    ]),
                     'created_at' => $book->created_at,
                     'updated_at' => $book->updated_at,
                 ];
@@ -64,67 +66,41 @@ class BookController extends Controller
         }
     }
 
-    // public function index(Request $request)
-    // {
-    //     try {
-    //         $perPage = $request->input('per_page', 10);
-    //         $page = $request->input('page', 1);
-
-    //         $books = Book::with('category')->paginate($perPage, ['*'], 'page', $page);
-
-    //         return response()->json([
-    //             'message' => 'Data retrieved successfully',
-    //             'data' => $books->items(),
-    //             'current_page' => $books->currentPage(),
-    //             'last_page' => $books->lastPage(),
-    //             'per_page' => $books->perPage(),
-    //             'total' => $books->total(),
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'message' => 'An error occurred',
-    //             'error' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-
     /**
      * Store a newly created resource in storage.
      */
     public function store(BookRequest $request)
     {
-        // Log the validated data
         Log::info('Validated data:', $request->validated());
 
         $data = $request->validated();
+        $categoryIds = $request->input('category_ids', []);
+        $authorIds = $request->input('author_ids', []); // Array of author IDs
 
         if ($request->hasFile('image')) {
-            // Create a unique name for the uploaded image
             $imageName = time() . '-image.' . $request->image->extension();
-
-            // Save the image to the storage
             $request->image->storeAs('images', $imageName);
-
-            // Replace the image field in the data with the new unique name
             $path = config('app.url') . '/storage/images/';
             $data['image'] = $path . $imageName;
         }
 
-        Book::create($data);
+        $book = Book::create($data);
+
+        // Attach categories and authors to the book
+        $book->categories()->attach($categoryIds);
+        $book->authors()->attach($authorIds);
 
         return response()->json([
             'message' => 'Data added successfully',
         ], 201);
     }
 
-
-
     /**
      * Display the specified resource.
      */
     public function show(string $id)
     {
-        $book = Book::with(['category', 'borrows'])->find($id);
+        $book = Book::with(['categories', 'authors', 'borrows'])->find($id);
 
         if (!$book) {
             return response()->json([
@@ -141,31 +117,28 @@ class BookController extends Controller
                 'image' => $book->image,
                 'year' => $book->year,
                 'stock' => $book->stock,
-                'category_id' => $book->category_id,
                 'created_at' => $book->created_at,
                 'updated_at' => $book->updated_at,
-                'category' => $book->category ? [
-                    'id' => $book->category->id,
-                    'name' => $book->category->name,
-                    'created_at' => $book->category->created_at,
-                    'updated_at' => $book->category->updated_at,
-                ] : null,
-                'list_borrows' => $book->borrows->map(function ($borrow) {
-                    return [
-                        'id' => $borrow->id,
-                        'load_date' => $borrow->load_date,
-                        'borrow_date' => $borrow->borrow_date,
-                        'user_id' => $borrow->user_id,
-                        'book_id' => $borrow->book_id,
-                        'created_at' => $borrow->created_at,
-                        'updated_at' => $borrow->updated_at,
-                        // Hapus pivot jika relasi bukan many-to-many
-                    ];
-                }),
+                'categories' => $book->categories->map(fn($category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                ]),
+                'authors' => $book->authors->map(fn($author) => [
+                    'id' => $author->id,
+                    'name' => $author->name,
+                ]),
+                'list_borrows' => $book->borrows->map(fn($borrow) => [
+                    'id' => $borrow->id,
+                    'load_date' => $borrow->load_date,
+                    'borrow_date' => $borrow->borrow_date,
+                    'user_id' => $borrow->user_id,
+                    'book_id' => $borrow->book_id,
+                    'created_at' => $borrow->created_at,
+                    'updated_at' => $borrow->updated_at,
+                ]),
             ],
         ], 200);
     }
-
 
     /**
      * Update the specified resource in storage.
@@ -175,6 +148,9 @@ class BookController extends Controller
         Log::info('Request Data:', $request->all());
 
         $data = $request->validated();
+        $categoryIds = $request->input('category_ids', []);
+        $authorIds = $request->input('author_ids', []);
+
         $book = Book::find($id);
 
         if (!$book) {
@@ -184,21 +160,23 @@ class BookController extends Controller
         }
 
         if ($request->hasFile('image')) {
-            // Delete the old image if it exists
             if ($book->image) {
                 $imageName = basename($book->image);
-                Storage::delete('public/images/' . $imageName);
+                Storage::delete('images/' . $imageName);
             }
 
-            // Create a unique name for the new image
             $imageName = time() . '-image.' . $request->image->extension();
-            $request->image->storeAs('public/images', $imageName);
+            $request->image->storeAs('images', $imageName);
 
             $path = config('app.url') . '/storage/images/';
             $data['image'] = $path . $imageName;
         }
 
         $book->update($data);
+
+        // Update categories & authors
+        $book->categories()->sync($categoryIds);
+        $book->authors()->sync($authorIds);
 
         return response()->json([
             'message' => 'Book updated successfully',
@@ -223,6 +201,10 @@ class BookController extends Controller
             Storage::delete('public/images/' . $imageName);
         }
 
+        // Hapus hubungan kategori & author sebelum menghapus buku
+        $book->categories()->detach();
+        $book->authors()->detach();
+
         $book->delete();
 
         return response()->json([
@@ -230,18 +212,124 @@ class BookController extends Controller
         ], 200);
     }
 
+
+    // public function search(Request $request)
+    // {
+    //     $query = $request->input('query');
+
+    //     if (!$query) {
+    //         return response()->json(['error' => 'Query parameter is required'], 400);
+    //     }
+
+    //     // Search for books by title only
+    //     $books = Book::where('title', 'like', "%{$query}%")
+    //         ->get();
+
+    //     return response()->json($books);
+    // }
+
     public function search(Request $request)
     {
         $query = $request->input('query');
 
         if (!$query) {
-            return response()->json(['error' => 'Query parameter is required'], 400);
+            return response()->json([
+                'message' => 'Query parameter is required',
+                'data' => []
+            ], 400);
         }
 
         // Search for books by title only
         $books = Book::where('title', 'like', "%{$query}%")
-            ->get();
+            ->get()
+            ->map(function ($book) {
+                return [
+                    'id' => $book->id,
+                    'title' => $book->title,
+                    'summary' => $book->summary,
+                    'stock' => $book->stock,
+                    'image' => $book->image,
+                    'availability' => $book->availability,
+                    'categories' => $book->categories->map(fn($category) => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                    ]),
+                    'authors' => $book->authors->map(fn($author) => [
+                        'id' => $author->id,
+                        'name' => $author->name,
+                    ]),
+                    'created_at' => $book->created_at,
+                    'updated_at' => $book->updated_at,
+                ];
+            });
 
-        return response()->json($books);
+        return response()->json([
+            'message' => 'Search results retrieved successfully',
+            'data' => $books
+        ]);
+    }
+
+    // public function search(Request $request)
+    // {
+    //     $query = $request->input('query');
+    //     $source = $request->input('source', 'all'); // Bisa 'local', 'external', atau 'all'
+
+    //     if (!$query) {
+    //         return response()->json(['error' => 'Query parameter is required'], 400);
+    //     }
+
+    //     // 1️⃣ Cari di database lokal dulu
+    //     $books = Book::where('title', 'like', "%{$query}%")->get();
+
+    //     // Jika hanya mencari di koleksi pribadi
+    //     if ($source === 'local') {
+    //         return response()->json($books);
+    //     }
+
+    //     // 2️⃣ Jika source 'all' atau 'external', cari di Open Library API juga
+    //     $externalBooks = [];
+    //     if ($source !== 'local') {
+    //         $response = Http::get("https://openlibrary.org/search.json?q=" . urlencode($query));
+    //         if ($response->successful()) {
+    //             $data = $response->json();
+    //             $externalBooks = collect($data['docs'])->map(function ($book) {
+    //                 return [
+    //                     'title' => $book['title'] ?? 'Unknown Title',
+    //                     'author' => $book['author_name'][0] ?? 'Unknown Author',
+    //                     'year' => $book['first_publish_year'] ?? 'Unknown Year',
+    //                     'cover' => isset($book['cover_i']) ? "https://covers.openlibrary.org/b/id/{$book['cover_i']}-M.jpg" : null,
+    //                     'source' => 'external', // Tandai bahwa ini dari Open Library
+    //                 ];
+    //             });
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'local_books' => $books,
+    //         'external_books' => $externalBooks
+    //     ]);
+    // }
+
+    public function addFromOpenLibrary(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string',
+            'author' => 'nullable|string',
+            'year' => 'nullable|integer',
+            'cover' => 'nullable|url',
+        ]);
+
+        $book = Book::create([
+            'title' => $request->title,
+            'summary' => 'Imported from Open Library',
+            'year' => $request->year,
+            'image' => $request->cover,
+            'stock' => 1, // Bisa disesuaikan
+        ]);
+
+        return response()->json([
+            'message' => 'Book added successfully',
+            'book' => $book,
+        ], 201);
     }
 }

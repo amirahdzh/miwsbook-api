@@ -23,10 +23,13 @@ class BookRequest extends FormRequest
     {
         return [
             'title' => 'required|max:255',
-            'summary' => 'required',
-            'stock' => 'required',
+            'summary' => 'nullable',
+            'stock' => 'nullable',
             'image' => 'nullable|file|mimes:jpeg,png,jpg,gif|max:2048',
-            'category_id' => 'required|exists:categories,id'
+            'authors' => 'nullable|array',
+            'authors.*' => 'exists:authors,id',
+            'category_ids' => 'required|array',
+            'category_ids.*' => 'exists:categories,id'
         ];
     }
 
@@ -37,8 +40,8 @@ class BookRequest extends FormRequest
             'summary.required' => 'inputan summary tidak boleh kosong',
             'stock.required' => 'inputan stok tidak boleh kosong',
             'image.mimes' => 'format image hanya boleh jpg, jpeg, png',
-            'category_id.required' => 'category_id tidak boleh kosong',
-            'category_id.exist' => 'id category tidak ditemukan di data genre',
+            // 'category_id.required' => 'category_id tidak boleh kosong',
+            // 'category_id.exist' => 'id category tidak ditemukan di data genre',
             'title.max' => 'inputan title maksimal 255',
         ];
     }

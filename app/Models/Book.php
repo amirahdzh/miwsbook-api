@@ -10,16 +10,27 @@ class Book extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = ['title', 'summary', 'image', 'category_id', 'stock'];
+    protected $fillable = ['title', 'summary', 'image', 'stock'];
 
-    public function category()
+    public function categories()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsToMany(Category::class, 'book_category');
     }
+
 
     public function borrows()
     {
         return $this->hasMany(Borrow::class);
+    }
+
+    public function getAvailabilityAttribute()
+    {
+        return $this->stock > 0;
+    }
+
+    public function authors()
+    {
+        return $this->belongsToMany(Author::class, 'book_author');
     }
 
     // public function borrows()

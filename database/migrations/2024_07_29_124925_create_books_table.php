@@ -14,12 +14,13 @@ return new class extends Migration
         Schema::create('books', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('title');
-            $table->text('summary');
+            $table->text('summary')->nullable();
             $table->string('image')->nullable();
-            $table->uuid('category_id');
-            $table->foreign('category_id')->references('id')->on('categories')->onUpdate('cascade')->onDelete('cascade');
-            $table->integer('stock');
+            $table->integer('stock')->default(1); // Stok fisik
+            $table->year('year')->nullable(); // Tahun terbit
+            $table->string('isbn')->nullable()->unique(); // Nomor ISBN
             $table->timestamps();
+            // $table->softDeletes(); // Soft delete agar tidak benar-benar terhapus
         });
     }
 
