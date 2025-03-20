@@ -9,12 +9,13 @@ class CreateBookCategoryTable extends Migration
     public function up()
     {
         Schema::create('book_category', function (Blueprint $table) {
-            $table->id();
             $table->uuid('book_id');
-            $table->foreign('book_id')->references('id')->on('books')->onUpdate('cascade')->onDelete('cascade');
             $table->uuid('category_id');
-            $table->foreign('category_id')->references('id')->on('categories')->onUpdate('cascade')->onDelete('cascade');
-            $table->timestamps();
+
+            $table->foreign('book_id')->references('id')->on('books')->onDelete('cascade');
+            $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
+
+            $table->primary(['book_id', 'category_id']); // Kombinasi primary key
         });
     }
 

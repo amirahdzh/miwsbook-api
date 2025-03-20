@@ -46,23 +46,30 @@ class DatabaseSeeder extends Seeder
             // 'email_verified_at' => Carbon::now()
         ]);
 
-        Category::create([
-            'name' => 'No Category',
+        $this->call([
+            CategorySeeder::class,
+            AuthorSeeder::class,
+            BookSeeder::class,
         ]);
 
-        Category::create([
-            'name' => 'Mystery',
-        ]);
-        $dataCategory = Category::where('name', '!=', 'No Category')->first();
-        Book::create(
-            [
-                'title' => 'Pink dan segala artinya',
-                'summary' => "Buku ini menceritakan kisah dari lahirnya sebuah warna yang sekarang diminimati oleh bnayak kaum perempuan. Buku ini juga disajikan untuk mengenal makna lebih dalam dari suatu warna, khususnya pink dan bahasan-bahassan menarik lainnya.",
-                'stock' => 20,
-                'category_id' => $dataCategory->id,
-                'image' => 'http://localhost:8000/storage/images/book-1.jpg'
-            ]
-        );
+        // Category::create([
+        //     'name' => 'No Category',
+        // ]);
+
+        // Category::create([
+        //     'name' => 'Mystery',
+        // ]);
+        // $dataCategory = Category::where('name', '!=', 'No Category')->first();
+        // Book::create(
+        //     [
+        //         'title' => 'Pink dan segala artinya',
+        //         'summary' => "Buku ini menceritakan kisah dari lahirnya sebuah warna yang sekarang diminimati oleh bnayak kaum perempuan. Buku ini juga disajikan untuk mengenal makna lebih dalam dari suatu warna, khususnya pink dan bahasan-bahasan menarik lainnya.",
+        //         'stock' => 1,
+        //         'image' => 'http://localhost:8000/storage/images/book-1.jpg',
+        //         'year' => 2021,
+        //         'isbn' => '978-3-16-148410-0',
+        //     ]
+        // );
 
         // $this->call([
         //     CategorySeeder::class,
