@@ -66,7 +66,7 @@ class DatabaseSeeder extends Seeder
         //         'title' => 'Pink dan segala artinya',
         //         'summary' => "Buku ini menceritakan kisah dari lahirnya sebuah warna yang sekarang diminimati oleh bnayak kaum perempuan. Buku ini juga disajikan untuk mengenal makna lebih dalam dari suatu warna, khususnya pink dan bahasan-bahasan menarik lainnya.",
         //         'stock' => 1,
-    //         'image' => Storage::url('images/book-1.jpg'),
+        //         'image' => Storage::url('images/book-1.jpg'),
         //         'year' => 2021,
         //         'isbn' => '978-3-16-148410-0',
         //     ]
