@@ -47,11 +47,11 @@ class DatabaseSeeder extends Seeder
             // 'email_verified_at' => Carbon::now()
         ]);
 
-        $this->call([
-            CategorySeeder::class,
-            AuthorSeeder::class,
-            BookSeeder::class,
-        ]);
+        // $this->call([
+        //     CategorySeeder::class,
+        //     AuthorSeeder::class,
+        //     BookSeeder::class,
+        // ]);
 
         // Category::create([
         //     'name' => 'No Category',
