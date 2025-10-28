@@ -21,6 +21,8 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        \App\Http\Middleware\Cors::class,
+
     ];
 
     /**
@@ -66,6 +68,5 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'auth:api' => \Tymon\JWTAuth\Middleware\GetUserFromToken::class,
         'isOwner' => \App\Http\Middleware\IsOwner::class,
-        'cors' => \App\Http\Middleware\Cors::class,
     ];
 }

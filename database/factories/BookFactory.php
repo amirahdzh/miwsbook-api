@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Book;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Storage;
 
 class BookFactory extends Factory
 {
@@ -21,7 +22,7 @@ class BookFactory extends Factory
             'title' => $faker->sentence(),
             'summary' => $faker->paragraph(),
             'stock' => $faker->numberBetween(1, 50),
-            'image' => 'http://localhost:8000/storage/images/default-book-image.jpg',
+            'image' => Storage::url('images/default-book-image.jpg'),
             'category_id' => $categoryId,
         ];
     }

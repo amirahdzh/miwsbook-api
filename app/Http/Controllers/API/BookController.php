@@ -44,6 +44,8 @@ class BookController extends Controller
                     'authors' => $book->authors->map(fn($author) => [
                         'id' => $author->id,
                         'name' => $author->name,
+                        'photo' => $author->photo,
+                        'bio' => $author->bio,
                     ]),
                     'created_at' => $book->created_at,
                     'updated_at' => $book->updated_at,

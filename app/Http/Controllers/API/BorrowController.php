@@ -41,8 +41,11 @@ class BorrowController extends Controller
                     'title' => $borrow->book->title,
                     'summary' => $borrow->book->summary,
                     'image' => $borrow->book->image,
-                    'stok' => $borrow->book->stok,
-                    'category_id' => $borrow->book->category_id,
+                    'stock' => $borrow->book->stock,
+                    'categories' => $borrow->book->categories->map(fn($category) => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                    ]),
                     'created_at' => $borrow->book->created_at,
                     'updated_at' => $borrow->book->updated_at,
                 ],
