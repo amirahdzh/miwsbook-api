@@ -28,8 +28,13 @@ class BookRequest extends FormRequest
             'image' => 'nullable|file|mimes:jpeg,png,jpg,gif|max:2048',
             'authors' => 'nullable|array',
             'authors.*' => 'exists:authors,id',
-            'category_ids' => 'required|array',
-            'category_ids.*' => 'exists:categories,id'
+
+            // allow either existing category IDs or new category names
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'exists:categories,id',
+
+            'categories' => 'nullable|array',
+            'categories.*' => 'string|max:255',
         ];
     }
 

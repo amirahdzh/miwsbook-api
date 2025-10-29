@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\API;
 
 use App\Models\Book;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Http\Requests\BookRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class BookController extends Controller
 {
@@ -76,25 +79,65 @@ class BookController extends Controller
         Log::info('Validated data:', $request->validated());
 
         $data = $request->validated();
-        $categoryIds = $request->input('category_ids', []);
-        $authorIds = $request->input('author_ids', []); // Array of author IDs
+        $providedIds = $request->input('category_ids', []) ?: [];
+        $providedNames = $request->input('categories', []) ?: [];
+        $authorIds = $request->input('author_ids', []) ?: [];
 
-        if ($request->hasFile('image')) {
-            $imageName = time() . '-image.' . $request->image->extension();
-            $request->image->storeAs('images', $imageName);
-            $path = config('app.url') . '/storage/images/';
-            $data['image'] = $path . $imageName;
+        // Normalize category names
+        $normalizedNames = collect($providedNames)
+            ->map(fn($n) => trim(preg_replace('/\s+/', ' ', (string)$n)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        DB::beginTransaction();
+        try {
+            // create/find categories by name
+            $createdIds = [];
+            foreach ($normalizedNames as $name) {
+                // store with title case to keep readable names; change if you prefer
+                $storedName = Str::title($name);
+                $category = Category::firstOrCreate(['name' => $storedName]);
+                $createdIds[] = $category->id;
+            }
+
+            // merge unique ids
+            $categoryIds = collect($providedIds)
+                ->merge($createdIds)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($request->hasFile('image')) {
+                $imageName = time() . '-image.' . $request->image->extension();
+                $request->image->storeAs('images', $imageName);
+                $path = config('app.url') . '/storage/images/';
+                $data['image'] = $path . $imageName;
+            }
+
+            $book = Book::create($data);
+
+            // Attach categories and authors to the book
+            if (!empty($categoryIds)) {
+                $book->categories()->attach($categoryIds);
+            }
+
+            if (!empty($authorIds)) {
+                $book->authors()->attach($authorIds);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Data added successfully',
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to create book: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to create book', 'error' => $e->getMessage()], 500);
         }
-
-        $book = Book::create($data);
-
-        // Attach categories and authors to the book
-        $book->categories()->attach($categoryIds);
-        $book->authors()->attach($authorIds);
-
-        return response()->json([
-            'message' => 'Data added successfully',
-        ], 201);
     }
 
     /**
@@ -150,8 +193,9 @@ class BookController extends Controller
         Log::info('Request Data:', $request->all());
 
         $data = $request->validated();
-        $categoryIds = $request->input('category_ids', []);
-        $authorIds = $request->input('author_ids', []);
+        $providedIds = $request->input('category_ids', []) ?: [];
+        $providedNames = $request->input('categories', []) ?: [];
+        $authorIds = $request->input('author_ids', []) ?: [];
 
         $book = Book::find($id);
 
@@ -174,11 +218,42 @@ class BookController extends Controller
             $data['image'] = $path . $imageName;
         }
 
-        $book->update($data);
+        DB::beginTransaction();
+        try {
+            $book->update($data);
 
-        // Update categories & authors
-        $book->categories()->sync($categoryIds);
-        $book->authors()->sync($authorIds);
+            // Normalize names and create missing categories
+            $normalizedNames = collect($providedNames)
+                ->map(fn($n) => trim(preg_replace('/\s+/', ' ', (string)$n)))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $createdIds = [];
+            foreach ($normalizedNames as $name) {
+                $storedName = Str::title($name);
+                $category = Category::firstOrCreate(['name' => $storedName]);
+                $createdIds[] = $category->id;
+            }
+
+            $categoryIds = collect($providedIds)
+                ->merge($createdIds)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            // Update categories & authors
+            $book->categories()->sync($categoryIds);
+            $book->authors()->sync($authorIds);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update book: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to update book', 'error' => $e->getMessage()], 500);
+        }
 
         return response()->json([
             'message' => 'Book updated successfully',
