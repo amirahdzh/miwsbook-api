@@ -40,11 +40,11 @@ class BookController extends Controller
                     'stock' => $book->stock,
                     'image' => $book->image,
                     'availability' => $book->availability,
-                    'categories' => $book->categories->map(fn($category) => [
+                    'categories' => ($book->categories ?? collect())->map(fn($category) => [
                         'id' => $category->id,
                         'name' => $category->name,
                     ]),
-                    'authors' => $book->authors->map(fn($author) => [
+                    'authors' => ($book->authors ?? collect())->map(fn($author) => [
                         'id' => $author->id,
                         'name' => $author->name,
                         'photo' => $author->photo,
@@ -164,11 +164,11 @@ class BookController extends Controller
                 'stock' => $book->stock,
                 'created_at' => $book->created_at,
                 'updated_at' => $book->updated_at,
-                'categories' => $book->categories->map(fn($category) => [
+                'categories' => ($book->categories ?? collect())->map(fn($category) => [
                     'id' => $category->id,
                     'name' => $category->name,
                 ]),
-                'authors' => $book->authors->map(fn($author) => [
+                'authors' => ($book->authors ?? collect())->map(fn($author) => [
                     'id' => $author->id,
                     'name' => $author->name,
                 ]),
@@ -328,11 +328,11 @@ class BookController extends Controller
                     'stock' => $book->stock,
                     'image' => $book->image,
                     'availability' => $book->availability,
-                    'categories' => $book->categories->map(fn($category) => [
+                    'categories' => ($book->categories ?? collect())->map(fn($category) => [
                         'id' => $category->id,
                         'name' => $category->name,
                     ]),
-                    'authors' => $book->authors->map(fn($author) => [
+                    'authors' => ($book->authors ?? collect())->map(fn($author) => [
                         'id' => $author->id,
                         'name' => $author->name,
                     ]),
