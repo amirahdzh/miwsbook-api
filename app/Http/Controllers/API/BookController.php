@@ -112,9 +112,9 @@ class BookController extends Controller
 
             if ($request->hasFile('image')) {
                 $imageName = time() . '-image.' . $request->image->extension();
-                $request->image->storeAs('images', $imageName);
-                $path = config('app.url') . '/storage/images/';
-                $data['image'] = $path . $imageName;
+                // store on the public disk so files are available under /storage
+                $request->image->storeAs('images', $imageName, 'public');
+                $data['image'] = config('app.url') . Storage::url('images/' . $imageName);
             }
 
             $book = Book::create($data);
@@ -208,14 +208,15 @@ class BookController extends Controller
         if ($request->hasFile('image')) {
             if ($book->image) {
                 $imageName = basename($book->image);
-                Storage::delete('images/' . $imageName);
+                // delete from public disk
+                Storage::disk('public')->delete('images/' . $imageName);
             }
 
             $imageName = time() . '-image.' . $request->image->extension();
-            $request->image->storeAs('images', $imageName);
+            // store on public disk
+            $request->image->storeAs('images', $imageName, 'public');
 
-            $path = config('app.url') . '/storage/images/';
-            $data['image'] = $path . $imageName;
+            $data['image'] = config('app.url') . Storage::url('images/' . $imageName);
         }
 
         DB::beginTransaction();
@@ -275,7 +276,7 @@ class BookController extends Controller
 
         if ($book->image) {
             $imageName = basename($book->image);
-            Storage::delete('public/images/' . $imageName);
+            Storage::disk('public')->delete('images/' . $imageName);
         }
 
         // Hapus hubungan kategori & author sebelum menghapus buku
