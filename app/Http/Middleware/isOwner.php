@@ -18,7 +18,7 @@ class isOwner
     {
         $user = auth()->user();
 
-        if ($user->role && $user->role->name === 'owner') {
+        if ($user && $user->role && $user->role->name === 'owner') {
             return $next($request);
         }
 
